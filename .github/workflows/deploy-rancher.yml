@@ -2,87 +2,36 @@ name: Deploy Rancher
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'helm/**'
-      - 'overlays/**'
-      - 'namespace.yaml'
-      - 'kustomization.yaml'
-      - '.github/workflows/deploy-rancher.yml'
+    branches: [main]
+    paths: ['helm/**', 'overlays/**', 'kustomization.yaml', '.github/workflows/deploy-rancher.yml']
   workflow_dispatch:
 
-env:
-  KUBECONFIG: ${{ secrets.KUBECONFIG }}
-
 jobs:
+  validate:
+    name: Validate Kustomize
+    uses: MdBSolutions/1000_workflows/.github/workflows/2000_infrastructure/2000-validate-kustomize.yml@main
+    with:
+      kustomize-dir: "overlays/production/"
+
   deploy:
-    name: Deploy Rancher to Management Cluster
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install kustomize
-        uses: instrumenta/setup-kustomize@v1
-        with:
-          version: 5.3.0
-
-      - name: Build manifest
-        run: |
-          kustomize build --enable-helm overlays/production/ > manifest.yaml
-          echo "=== Generated Manifest (first 50 lines) ==="
-          head -50 manifest.yaml
-
-      - name: Validate manifest syntax
-        run: |
-          if ! grep -q "kind:" manifest.yaml; then
-            echo "ERROR: No Kubernetes resources found in manifest"
-            exit 1
-          fi
-          echo "Manifest validation passed"
-
-      - name: Configure kubectl
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-
-      - name: Deploy to cluster
-        run: |
-          echo "Deploying Rancher to management cluster..."
-          kubectl apply -f manifest.yaml
-          echo "Waiting for deployment to be ready..."
-          kubectl rollout status deployment/rancher -n cattle-system --timeout=5m || true
-
-      - name: Verify deployment
-        run: |
-          echo "Checking Rancher deployment status..."
-          kubectl get deployment -n cattle-system -o wide
-          kubectl get pods -n cattle-system -o wide
-          kubectl get svc -n cattle-system -o wide
-          kubectl get ingress -n cattle-system -o wide
-
-      - name: Show Rancher logs (on failure)
-        if: failure()
-        run: |
-          echo "=== Rancher Pod Logs ==="
-          kubectl logs -n cattle-system -l app=rancher --tail=100 || true
+    name: Deploy Rancher
+    needs: validate
+    uses: MdBSolutions/1000_workflows/.github/workflows/2000_infrastructure/2000-deploy-kustomize.yml@main
+    with:
+      kustomize-dir: "overlays/production/"
+      namespace: "cattle-system"
+      wait-timeout: "300s"
+      dry-run: false
 
   notify:
-    name: Notify deployment status
-    runs-on: ubuntu-latest
-    needs: deploy
+    name: Notify Deployment Status
     if: always()
-    steps:
-      - name: Deployment result
-        run: |
-          if [ "${{ needs.deploy.result }}" == "success" ]; then
-            echo "Rancher deployment completed successfully"
-          else
-            echo "Rancher deployment failed - check logs above"
-            exit 1
-          fi
+    needs: deploy
+    uses: MdBSolutions/1000_workflows/.github/workflows/2000_infrastructure/2000-notify.yml@main
+    with:
+      status: ${{ needs.deploy.result }}
+      deployment-name: "Rancher"
+      environment: "production"
+    secrets:
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+      TEAMS_WEBHOOK: ${{ secrets.TEAMS_WEBHOOK }}
