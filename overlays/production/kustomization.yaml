@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../../
+
+namespace: cattle-system
+
+resources:
+  - ingress.yaml
+
+# Production-specific values override
+helmCharts:
+  - name: rancher
+    repo: https://releases.rancher.com/server-charts/stable
+    version: v2.10.0
+    releaseName: rancher
+    namespace: cattle-system
+    valuesFile: ../../helm/values.yaml
+    valuesInline:
+      hostname: rancher.internal
+      replicas: 1
+      tls: ingress
+      ingress:
+        enabled: true
+        ingressClassName: nginx
+
+# Patch deployment for production settings
+patchesStrategicMerge:
+  - deployment-patch.yaml
+
+# ConfigMap for Rancher branding (optional)
+configMapGenerator:
+  - name: rancher-config
+    namespace: cattle-system
+    literals:
+      - RANCHER_ENVIRONMENT=production
+      - RANCHER_CLUSTER_NAME=management-cluster

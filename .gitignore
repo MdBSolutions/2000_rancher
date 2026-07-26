@@ -1,0 +1,32 @@
+# Kubernetes
+*.kubeconfig
+secrets.yaml
+secret-*.yaml
+
+# Helm
+Chart.lock
+charts/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local dev
+.env.local
+.env.*.local
+
+# Kustomize build output
+kustomization_build/
+
+# Terraform (if used)
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl

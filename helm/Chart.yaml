@@ -1,0 +1,20 @@
+apiVersion: v2
+name: rancher
+description: A Helm chart for Rancher multi-cluster management
+type: application
+version: 1.0.0
+appVersion: "2.10.0"
+
+keywords:
+  - rancher
+  - management
+  - multi-cluster
+  - kubernetes
+
+home: https://rancher.com
+sources:
+  - https://github.com/rancher/rancher
+
+maintainers:
+  - name: Rancher
+    url: https://rancher.com

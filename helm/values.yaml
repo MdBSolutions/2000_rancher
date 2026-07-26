@@ -1,0 +1,81 @@
+# Rancher Helm values for management cluster deployment
+
+# Image configuration
+image:
+  repository: rancher/rancher
+  tag: v2.10.0
+  pullPolicy: IfNotPresent
+
+# Deployment replicas
+replicas: 1
+
+# Rancher hostname
+hostname: rancher.internal
+
+# TLS Configuration
+tls: ingress
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  # Certificate is self-signed by default (Rancher generates it)
+  tls:
+    enabled: true
+    source: secret
+    secretName: tls-rancher-ingress
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 443
+  targetPort: 443
+
+# Resource requests/limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Storage for Rancher data
+persistence:
+  enabled: true
+  storageClassName: ""  # Use default storage class
+  size: 10Gi
+  path: /var/lib/rancher
+
+# Rancher bootstrap password
+# Leave empty - users will set it on first login
+bootstrapPassword: ""
+
+# Audit logging
+auditLog:
+  enabled: false
+  maxAge: 30
+  maxBackup: 10
+  maxSize: 100
+
+# Additional environment variables
+env: {}
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: false
+  runAsUser: 0
+  fsGroup: 0
+
+# Container security context
+securityContext:
+  privileged: false
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+
+# Node selector (empty = any node)
+nodeSelector: {}
+
+# Tolerations (empty = no special tolerations)
+tolerations: []
+
+# Affinity rules
+affinity: {}
