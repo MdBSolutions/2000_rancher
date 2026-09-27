@@ -12,22 +12,20 @@ replicas: 1
 # Rancher hostname
 hostname: rancher.internal
 
-# TLS Configuration
+# Direct HTTPS access through the existing management NodePort network.
+# There is no ingress controller in this platform.
 tls: ingress
 ingress:
-  enabled: true
-  ingressClassName: nginx
-  # Certificate is self-signed by default (Rancher generates it)
+  enabled: false
+  servicePort: 443
   tls:
-    enabled: true
-    source: secret
-    secretName: tls-rancher-ingress
+    source: rancher
 
-# Service configuration
+# Kubernetes allocates the HTTPS NodePort; discover it from Service/rancher.
+# Keep HTTP internal for Rancher's health probes; do not expose it as a service port.
 service:
-  type: ClusterIP
-  port: 443
-  targetPort: 443
+  type: NodePort
+  disableHTTP: true
 
 # Resource requests/limits
 resources:
