@@ -19,7 +19,8 @@ ingress:
   enabled: false
   servicePort: 443
   tls:
-    source: rancher
+    # Avoid cert-manager Issuer creation even when ingress.enabled is false.
+    source: secret
 
 # Kubernetes allocates the HTTPS NodePort; discover it from Service/rancher.
 # Keep HTTP internal for Rancher's health probes; do not expose it as a service port.
