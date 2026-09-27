@@ -50,9 +50,17 @@ persistence:
   size: 10Gi
   path: /var/lib/rancher
 
-# Rancher bootstrap password
-# Leave empty - users will set it on first login
+# Leave empty so Helm does not create or own a bootstrap Secret.
+# VSO supplies the mandatory reference below before the first container start.
 bootstrapPassword: ""
+
+extraEnv:
+  - name: CATTLE_BOOTSTRAP_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: rancher-bootstrap-password
+        key: password
+        optional: false
 
 # Audit logging
 auditLog:
