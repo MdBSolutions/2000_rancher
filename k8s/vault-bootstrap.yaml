@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rancher-vault-auth
+  namespace: cattle-system
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rancher-vault-tokenreview
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: rancher-vault-auth
+    namespace: cattle-system
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultAuth
+metadata:
+  name: rancher-bootstrap
+  namespace: cattle-system
+spec:
+  # Reuse platform TLS trust; authentication stays scoped to cattle-system.
+  vaultConnectionRef: argocd/vault-argocd
+  method: kubernetes
+  mount: kubernetes
+  kubernetes:
+    role: rancher-vso-read
+    serviceAccount: rancher-vault-auth
+    audiences:
+      - vault
+      - https://kubernetes.default.svc.cluster.local
+---
+apiVersion: secrets.hashicorp.com/v1beta1
+kind: VaultStaticSecret
+metadata:
+  name: rancher-bootstrap
+  namespace: cattle-system
+spec:
+  vaultAuthRef: rancher-bootstrap
+  mount: secret
+  type: kv-v2
+  path: management/rancher/admin
+  refreshAfter: 5m
+  destination:
+    name: rancher-bootstrap-password
+    create: true
+    type: Opaque
+    transformation:
+      excludeRaw: true
+      includes: ['^password$']
